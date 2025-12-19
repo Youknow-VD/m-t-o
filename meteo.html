@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Météo Pro</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #4a90e2, #145c9e);
+      color: #fff;
+      margin: 0; padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .weather-container {
+      background-color: rgba(0,0,0,0.4);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      padding: 30px 40px;
+      width: 320px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+    input[type="text"] {
+      width: 80%;
+      padding: 10px 15px;
+      border-radius: 25px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 30px;
+      border-radius: 25px;
+      border: none;
+      background-color: #00aaff;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0077bb;
+    }
+    .result {
+      margin-top: 20px;
+      background-color: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 15px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="weather-container">
+    <h1>Météo Pro</h1>
+    <input type="text" id="cityInput" placeholder="Entrez une ville" />
+    <button onclick="fetchWeather()">Voir la météo</button>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const apiKey = '5fe9d267d5760053718b7decad8a1651'; // Remplacez avec votre clé OpenWeatherMap
+
+    async function fetchWeather() {
+      const city = document.getElementById('cityInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      if (!city) {
+        resultDiv.textContent = "Veuillez entrer une ville.";
+        return;
+      }
+
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric&lang=fr`;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Ville introuvable");
+        const data = await response.json();
+        resultDiv.innerHTML = `
+          <strong>${data.name}</strong><br>
+          ${data.weather[0].description}<br>
+          Température: ${data.main.temp} °C<br>
+          Vent: ${data.wind.speed} m/s
+        `;
+      } catch (error) {
+        resultDiv.textContent = error.message;
+      }
+    }
+  </script>
+</body>
+</html>
