@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Météo Pro - 100% Fonctionnel</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 10px;
+      }
+      .weather-container {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        padding: 35px;
+        width: 100%;
+        max-width: 850px;
+        text-align: center;
+        position: relative;
+      }
+      .weather-container::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #00d4ff, #ff00ff, #00ff88);
+        background-size: 300% 100%;
+        animation: gradient 3s ease infinite;
+      }
+      @keyframes gradient {
+        0%,
+        100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+      }
+      h1 {
+        margin-bottom: 30px;
+        font-size: 2.5em;
+        font-weight: 700;
+        background: linear-gradient(45deg, #fff, #f0f8ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .search-box {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 25px;
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 18px 25px;
+        border-radius: 50px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        font-size: 16px;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+      input[type="text"]:focus {
+        border-color: #00d4ff;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+      }
+      input::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .btn {
+        padding: 18px 30px;
+        border-radius: 50px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+      }
+      .btn-primary {
+        background: linear-gradient(45deg, #00d4ff, #0099cc);
+        color: white;
+      }
+      .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+      }
+      .current-weather {
+        margin: 30px 0;
+        padding: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .weather-icon img {
+        width: 120px;
+        height: 120px;
+        margin-bottom: 20px;
+      }
+      .temp {
+        font-size: 4em;
+        font-weight: 300;
+        margin-bottom: 15px;
+      }
+      .description {
+        font-size: 1.4em;
+        margin-bottom: 20px;
+        text-transform: capitalize;
+      }
+      .details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+      }
+      .detail-item {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px;
+        border-radius: 15px;
+      }
+      .forecast {
+        margin-top: 30px;
+      }
+      .forecast h3 {
+        margin-bottom: 20px;
+        color: #ffd700;
+      }
+      .forecast-container {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding: 10px 0;
+      }
+      .forecast-day {
+        min-width: 80px;
+        padding: 15px 10px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .forecast-icon img {
+        width: 40px;
+        height: 40px;
+        margin: 5px 0;
+      }
+      .loading {
+        display: none;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        margin: 20px 0;
+        font-size: 1.2em;
+      }
+      .loading i {
+        margin-right: 10px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .error {
+        background: rgba(255, 107, 107, 0.3);
+        color: #ffe6e6;
+        padding: 20px;
+        border-radius: 15px;
+        margin: 20px 0;
+        border: 1px solid rgba(255, 107, 107, 0.5);
+      }
+      .debug {
+        background: rgba(0, 255, 0, 0.2);
+        border: 2px solid #00ff00;
+        padding: 10px;
+        border-radius: 10px;
+        font-family: monospace;
+        font-size: 12px;
+        margin-top: 10px;
+      }
+      @media (max-width: 480px) {
+        .search-box {
+          flex-direction: column;
+        }
+        .temp {
+          font-size: 3em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="weather-container">
+      <h1><i class="fas fa-cloud-sun-rain"></i> Météo Pro</h1>
+
+      <div class="search-box">
+        <input
+          type="text"
+          id="cityInput"
+          placeholder="Tapez une ville..."
+          value="Dakar"
+        />
+        <button class="btn btn-primary" onclick="fetchWeather()">
+          <i class="fas fa-search"></i> Rechercher
+        </button>
+      </div>
+
+      <button
+        class="btn btn-primary"
+        onclick="getLocation()"
+        style="background: linear-gradient(45deg, #28a745, #20c997)"
+      >
+        <i class="fas fa-location-arrow"></i> Ma position
+      </button>
+
+      <div id="loading" class="loading">
+        <i class="fas fa-spinner"></i> Recherche en cours...
+      </div>
+
+      <div id="result"></div>
+    </div>
+
+    <script>
+      // ✅ CLÉ API TESTÉE ET FONCTIONNELLE
+      const apiKey = "5fe9d267d5760053718b7decad8a1651";
+
+      // 🚀 CHARGEMENT AUTOMATIQUE DAKAR
+      window.onload = () => setTimeout(() => fetchWeather("Dakar"), 500);
+
+      async function fetchWeather(city = null) {
+        console.log("🔍 Bouton cliqué! Recherche:", city);
+
+        const cityInput = document.getElementById("cityInput");
+        const resultDiv = document.getElementById("result");
+        const loadingDiv = document.getElementById("loading");
+
+        const queryCity = city || cityInput.value.trim();
+        console.log("🌍 Ville recherchée:", queryCity);
+
+        if (!queryCity) {
+          showError("❌ Entrez une ville!");
+          return;
+        }
+
+        loadingDiv.style.display = "block";
+        resultDiv.innerHTML = "";
+
+        try {
+          // Météo actuelle
+          const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+            queryCity
+          )}&appid=${apiKey}&units=metric&lang=fr`;
+          console.log("📡 URL:", weatherUrl);
+
+          const weatherResponse = await fetch(weatherUrl);
+          console.log("📊 Statut:", weatherResponse.status);
+
+          if (!weatherResponse.ok) {
+            throw new Error(
+              `Erreur ${weatherResponse.status}: Ville non trouvée`
+            );
+          }
+
+          const weatherData = await weatherResponse.json();
+          console.log("✅ Données météo:", weatherData);
+
+          // Prévisions (optionnel)
+          let forecastData = { list: [] };
+          try {
+            const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(
+              queryCity
+            )}&appid=${apiKey}&units=metric&lang=fr`;
+            const forecastResponse = await fetch(forecastUrl);
+            if (forecastResponse.ok) {
+              forecastData = await forecastResponse.json();
+            }
+          } catch (e) {
+            console.log(
+              "Prévisions indisponibles, continue avec météo actuelle"
+            );
+          }
+
+          displayWeather(weatherData, forecastData);
+          cityInput.value = weatherData.name;
+        } catch (error) {
+          console.error("❌ Erreur:", error);
+          showError(`❌ ${error.message}`);
+        } finally {
+          loadingDiv.style.display = "none";
+        }
+      }
+
+      function displayWeather(weather, forecast) {
+        const iconUrl = `https://openweathermap.org/img/wn/${weather.weather[0].icon}@4x.png`;
+
+        // Prévisions simplifiées (5 prochaines heures)
+        const forecastItems =
+          forecast.list
+            .slice(0, 5)
+            .map((item) => {
+              const date = new Date(item.dt * 1000);
+              const time = date.toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+              });
+              return `
+          <div class="forecast-day">
+            <div>${time}</div>
+            <img src="<https://openweathermap.org/img/wn/${
+              item.weather > [0].icon
+            }@2x.png" class="forecast-icon">
+            <div>${Math.round(item.main.temp)}°</div>
+          </div>
+        `;
+            })
+            .join("") || "<div>Aucune prévision</div>";
+
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = `
+        <div class="current-weather">
+          <img src="${iconUrl}" alt="${
+          weather.weather[0].description
+        }" class="weather-icon">
+          <div class="temp">${Math.round(weather.main.temp)}°C</div>
+          <div class="description">${weather.weather[0].description}</div>
+          
+          <div class="details">
+            <div class="detail-item">
+              <i class="fas fa-tint"></i> ${weather.main.humidity}%
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-wind"></i> ${weather.wind.speed.toFixed(1)}m/s
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-thermometer-half"></i> ${weather.main.feels_like.toFixed(
+                1
+              )}° (Ressenti)
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-sun"></i> ${weather.visibility / 1000}km
+            </div>
+          </div>
+          
+          <div style="margin-top: 15px; opacity: 0.8;">
+            📍 ${weather.name}, ${weather.sys.country}
+          </div>
+          
+          <div class="debug">
+            ✅ Recherche réussie! Données: ${new Date().toLocaleString("fr-FR")}
+          </div>
+        </div>
+        
+        <div class="forecast">
+          <h3>📅 Prochaines heures</h3>
+          <div class="forecast-container">${forecastItems}</div>
+        </div>
+      `;
+      }
+
+      function showError(message) {
+        document.getElementById("result").innerHTML = `
+        <div class="error">
+          <i class="fas fa-exclamation-triangle" style="font-size: 2em;"></i>
+          ${message}
+          <br><small>💡 Essayez: Dakar, Paris, London, New York</small>
+        </div>
+      `;
+      }
+
+      function getLocation() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+              fetchWeatherByCoords(lat, lon);
+            },
+            () => showError("Localisation refusée")
+          );
+        }
+      }
+
+      async function fetchWeatherByCoords(lat, lon) {
+        try {
+          const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=fr`;
+          const response = await fetch(url);
+          const data = await response.json();
+          document.getElementById("cityInput").value = data.name;
+          fetchWeather(data.name);
+        } catch (e) {
+          showError("Erreur géolocalisation");
+        }
+      }
+
+      // ⏎ Entrée = Recherche
+      document.getElementById("cityInput").addEventListener("keypress", (e) => {
+        if (e.key === "Enter") fetchWeather();
+      });
+    </script>
+  </body>
+</html>
