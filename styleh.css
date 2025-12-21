@@ -9,6 +9,8 @@
     .header {
       text-align: center;
       margin-bottom: 30px;
+      margin-top: 50px;
+
     }
     .header h1 {
       font-size: 2.5em;
@@ -157,4 +159,5 @@
       .history-header { flex-direction: column; gap: 10px; align-items: flex-start; }
       .temp-main { font-size: 2em; }
     }
+
 
