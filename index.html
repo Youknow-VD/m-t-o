@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YK Météo - Prévisions Complètes</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="weather-container">
+    <h1><i class="fas fa-cloud-sun-rain"></i>YK Météo Pro</h1>
+    
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Tapez une ville..." value="Dakar" />
+      <button class="btn btn-primary" onclick="fetchWeather()">
+        <i class="fas fa-search"></i> Rechercher
+      </button>
+    </div>
+    
+    <button class="btn btn-secondary" onclick="getLocation()">
+      <i class="fas fa-location-arrow"></i> Ma position
+    </button>
+    
+    <a href="history.html" class="btn btn-history">
+      <i class="fas fa-history"></i> Historique
+    </a>
+    
+    <div id="loading" class="loading">
+      <i class="fas fa-spinner"></i> Recherche en cours...
+    </div>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    // ✅ CLÉ API FONCTIONNELLE
+    const apiKey = '5fe9d267d5760053718b7decad8a1651';
+
+    // 🔄 Charge ville depuis URL ou Dakar par défaut
+    window.onload = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const city = urlParams.get('city') || 'Dakar';
+      document.getElementById('cityInput').value = city;
+      setTimeout(() => fetchWeather(city), 500);
+    };
+
+    // 💾 SAUVEGARDE HISTORIQUE (NOUVEAU !)
+    function saveToHistory(weatherData) {
+      const entry = {
+        id: Date.now(),
+        city: weatherData.name,
+        country: weatherData.sys.country,
+        temp: Math.round(weatherData.main.temp),
+        description: weatherData.weather[0].description,
+        icon: weatherData.weather[0].icon,
+        humidity: weatherData.main.humidity,
+        wind: weatherData.wind.speed.toFixed(1),
+        feelsLike: Math.round(weatherData.main.feels_like),
+        visibility: (weatherData.visibility / 1000).toFixed(1),
+        timestamp: new Date().toISOString(),
+        date: new Date().toLocaleDateString('fr-FR')
+      };
+
+      let history = JSON.parse(localStorage.getItem('weatherHistory')) || [];
+      history.unshift(entry);
+      history = history.slice(0, 50); // Max 50 entrées
+      localStorage.setItem('weatherHistory', JSON.stringify(history));
+    }
+
+    async function fetchWeather(city = null) {
+      const cityInput = document.getElementById('cityInput');
+      const resultDiv = document.getElementById('result');
+      const loadingDiv = document.getElementById('loading');
+      
+      const queryCity = city || cityInput.value.trim();
+      if (!queryCity) {
+        showError('❌ Entrez une ville!');
+        return;
+      }
+
+      loadingDiv.style.display = 'block';
+      resultDiv.innerHTML = '';
+
+      try {
+        // Météo actuelle
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(queryCity)}&appid=${apiKey}&units=metric&lang=fr`;
+        const weatherResponse = await fetch(weatherUrl);
+        
+        if (!weatherResponse.ok) {
+          throw new Error(`Ville non trouvée (Code: ${weatherResponse.status})`);
+        }
+        
+        const weatherData = await weatherResponse.json();
+
+        // Prévisions
+        let forecastData = { list: [] };
+        try {
+          const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(queryCity)}&appid=${apiKey}&units=metric&lang=fr`;
+          const forecastResponse = await fetch(forecastUrl);
+          if (forecastResponse.ok) {
+            forecastData = await forecastResponse.json();
+          }
+        } catch(e) {
+          console.log('Prévisions indisponibles');
+        }
+
+        displayWeather(weatherData, forecastData);
+        cityInput.value = weatherData.name;
+        
+        // 💾 SAUVEGARDE AUTOMATIQUE DANS HISTORIQUE
+        saveToHistory(weatherData);
+        
+      } catch (error) {
+        showError(`❌ ${error.message}`);
+      } finally {
+        loadingDiv.style.display = 'none';
+      }
+    }
+
+    function displayWeather(weather, forecast) {
+      const iconCode = weather.weather[0].icon;
+      
+      // Icônes locales + fallback
+      const getIconUrl = (icon) => {
+        return `icons/${icon}.png`; // Priorité locale
+      };
+
+      // Prévisions
+      const forecastItems = forecast.list.slice(0, 5).map(item => {
+        const time = new Date(item.dt * 1000).toLocaleTimeString('fr-FR', {hour: '2-digit'});
+        const fIcon = getIconUrl(item.weather[0].icon);
+        const fallbackIcon = `https://openweathermap.org/img/wn/${item.weather[0].icon}@2x.png`;
+        return `
+          <div class="forecast-day">
+            <div>${time}</div>
+            <img src="${fIcon}" class="forecast-icon" 
+                 onerror="this.src='${fallbackIcon}'" 
+                 alt="${item.weather[0].description}">
+            <div>${Math.round(item.main.temp)}°</div>
+          </div>
+        `;
+      }).join('');
+
+      const resultDiv = document.getElementById('result');
+      const mainIcon = getIconUrl(iconCode);
+      const mainFallback = `https://openweathermap.org/img/wn/${iconCode}@4x.png`;
+      
+      resultDiv.innerHTML = `
+        <div class="current-weather">
+          <img src="${mainIcon}" alt="${weather.weather[0].description}" class="weather-icon"
+               onerror="this.src='${mainFallback}'">
+          <div class="temp">${Math.round(weather.main.temp)}°C</div>
+          <div class="description">${weather.weather[0].description}</div>
+          
+          <div class="details">
+            <div class="detail-item">
+              <i class="fas fa-tint"></i> ${weather.main.humidity}%
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-wind"></i> ${weather.wind.speed.toFixed(1)}m/s
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-thermometer-half"></i> ${weather.main.feels_like.toFixed(1)}°
+            </div>
+            <div class="detail-item">
+              <i class="fas fa-eye"></i> ${(weather.visibility / 1000).toFixed(1)}km
+            </div>
+          </div>
+          
+          <div style="margin-top: 15px; opacity: 0.8;">
+            📍 ${weather.name}, ${weather.sys.country}
+          </div>
+          
+          <div class="debug">
+            ✅ Sauvegardé dans l'historique!
+          </div>
+        </div>
+        
+        <div class="forecast">
+          <h3>📅 Prochaines 15h</h3>
+          <div class="forecast-container">${forecastItems}</div>
+        </div>
+      `;
+    }
+
+    function showError(message) {
+      document.getElementById('result').innerHTML = `
+        <div class="error">
+          <i class="fas fa-exclamation-triangle" style="font-size: 2em;"></i>
+          ${message}
+          <br><small>💡 Essayez: Dakar, Paris, London, New York</small>
+        </div>
+      `;
+    }
+
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            fetchWeatherByCoords(lat, lon);
+          },
+          () => showError('Localisation refusée')
+        );
+      }
+    }
+
+    async function fetchWeatherByCoords(lat, lon) {
+      try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=fr`;
+        const response = await fetch(url);
+        const data = await response.json();
+        document.getElementById('cityInput').value = data.name;
+        fetchWeather(data.name);
+      } catch(e) {
+        showError('Erreur géolocalisation');
+      }
+    }
+
+    // ⏎ Entrée = Recherche
+    document.getElementById('cityInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') fetchWeather();
+    });
+  </script>
+</body>
+</html>

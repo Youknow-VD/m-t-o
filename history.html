@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YK Météo Pro - Historique</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styleh.css">
+</head>
+<body>
+  <button class="back-btn" onclick="window.location.href='index.html'">
+    <i class="fas fa-arrow-left"></i> Météo
+  </button>
+
+  <div class="header">
+    <h1><i class="fas fa-history"></i> Historique Météo YK</h1>
+    <p>Vos dernières recherches</p>
+  </div>
+
+  <div class="history-container">
+    <div class="stats">
+      <h2><i class="fas fa-chart-bar"></i> Statistiques</h2>
+      <div>Total recherches: <span id="totalCount">0</span> | 
+          Aujourd'hui: <span id="todayCount">0</span></div>
+      <button class="clear-all" onclick="clearAllHistory()">
+        <i class="fas fa-trash"></i> Effacer tout
+      </button>
+    </div>
+
+    <div id="historyList" class="history-list">
+      <div class="empty-state">
+        <i class="fas fa-clock"></i>
+        <h3>Aucun historique</h3>
+        <p>Faites une recherche dans Météo Pro pour commencer</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let history = JSON.parse(localStorage.getItem('weatherHistory')) || [];
+
+    function saveHistory(weatherData) {
+      const entry = {
+        id: Date.now(),
+        city: weatherData.name,
+        country: weatherData.sys.country,
+        temp: Math.round(weatherData.main.temp),
+        description: weatherData.weather[0].description,
+        icon: weatherData.weather[0].icon,
+        humidity: weatherData.main.humidity,
+        wind: weatherData.wind.speed.toFixed(1),
+        feelsLike: Math.round(weatherData.main.feels_like),
+        visibility: (weatherData.visibility / 1000).toFixed(1),
+        timestamp: new Date().toISOString(),
+        date: new Date().toLocaleDateString('fr-FR')
+      };
+
+      // Garde les 50 dernières
+      history.unshift(entry);
+      history = history.slice(0, 50);
+      localStorage.setItem('weatherHistory', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const totalEl = document.getElementById('totalCount');
+      const todayEl = document.getElementById('todayCount');
+
+      if (history.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-clock"></i>
+            <h3>Aucun historique</h3>
+            <p>Faites une recherche dans Météo Pro pour commencer</p>
+          </div>
+        `;
+        totalEl.textContent = '0';
+        todayEl.textContent = '0';
+        return;
+      }
+
+      const today = new Date().toDateString();
+      const todayCount = history.filter(h => new Date(h.timestamp).toDateString() === today).length;
+
+      totalEl.textContent = history.length;
+      todayEl.textContent = todayCount;
+
+      list.innerHTML = history.map((item, index) => {
+        const isOlder = index > 4;
+        const time = new Date(item.timestamp).toLocaleString('fr-FR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const iconUrl = `icons/${item.icon}.png` || `https://openweathermap.org/img/wn/${item.icon}@2x.png`;
+        
+        return `
+          <div class="history-item ${isOlder ? 'older' : ''}" onclick="loadCity('${item.city}')">
+            <div class="history-header">
+              <div class="city-time">
+                <strong>${item.city}, ${item.country}</strong><br>
+                <small>${item.date} ${time}</small>
+              </div>
+              <button class="delete-btn" onclick="deleteItem(${item.id}); event.stopPropagation()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div class="weather-main">
+              <img src="${iconUrl}" alt="${item.description}" 
+                   onerror="this.src='https://openweathermap.org/img/wn/${item.icon}@2x.png'"
+                   style="width:60px;height:60px;">
+              <div>
+                <div class="temp-main">${item.temp}°C</div>
+                <div style="opacity:0.8;">${item.description}</div>
+              </div>
+            </div>
+            
+            <div class="details-grid">
+              <div class="detail">
+                <i class="fas fa-tint"></i><br>${item.humidity}%
+              </div>
+              <div class="detail">
+                <i class="fas fa-wind"></i><br>${item.wind}m/s
+              </div>
+              <div class="detail">
+                <i class="fas fa-thermometer-half"></i><br>${item.feelsLike}°
+              </div>
+              <div class="detail">
+                <i class="fas fa-eye"></i><br>${item.visibility}km
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function deleteItem(id) {
+      history = history.filter(item => item.id !== id);
+      localStorage.setItem('weatherHistory', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function clearAllHistory() {
+      if (confirm('Effacer tout l\'historique?')) {
+        history = [];
+        localStorage.removeItem('weatherHistory');
+        renderHistory();
+      }
+    }
+
+    function loadCity(city) {
+      window.location.href = `index.html?city=${encodeURIComponent(city)}`;
+    }
+
+    // Initialisation
+    renderHistory();
+
+    // Auto-refresh toutes les 30s (optionnel)
+    setInterval(renderHistory, 30000);
+  </script>
+</body>
+</html>
